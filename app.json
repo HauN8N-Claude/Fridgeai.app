@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "FridAI",
+    "slug": "fridai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "fridai",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.fridai.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.fridai.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "react-native-svg",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FridAI accède à vos photos pour scanner votre frigo.",
+          "cameraPermission": "FridAI utilise la caméra pour scanner votre frigo."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "http://localhost:3000"
+    }
+  }
+}
