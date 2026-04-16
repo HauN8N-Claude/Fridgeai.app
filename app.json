@@ -34,11 +34,14 @@
         }
       ]
     ],
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/icon.png"
+    },
     "experiments": {
       "typedRoutes": true
     },
-    "extra": {
-      "apiUrl": "http://localhost:3000"
-    }
+    "extra": {}
   }
 }
