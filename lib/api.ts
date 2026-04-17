@@ -1,8 +1,6 @@
-import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 
-const API_URL =
-  (Constants.expoConfig?.extra?.apiUrl as string) ?? "http://localhost:3000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 
 const SESSION_KEY = "fridai_session";
 const ORG_ID_KEY = "fridai_org_id";

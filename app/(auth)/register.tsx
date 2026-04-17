@@ -13,12 +13,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../../lib/theme";
+import { useAuthStore } from "../../store/auth-store";
 
 export default function RegisterScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { register } = useAuthStore();
   const router = useRouter();
 
   const handleRegister = async () => {
@@ -26,23 +28,15 @@ export default function RegisterScreen() {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
     }
+    if (password.length < 8) {
+      Alert.alert("Erreur", "Le mot de passe doit faire au moins 8 caractères");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000"}/api/auth/sign-up/email`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
-        },
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message ?? "Erreur lors de la création du compte");
-      }
-      Alert.alert("Compte créé", "Connectez-vous avec vos identifiants.", [
-        { text: "OK", onPress: () => router.replace("/(auth)/login") },
-      ]);
+      await register(name, email, password);
+      // AuthGuard will redirect to /onboarding automatically
     } catch (err) {
       Alert.alert("Erreur", (err as Error).message);
     } finally {
@@ -64,8 +58,20 @@ export default function RegisterScreen() {
         <View style={styles.form}>
           {[
             { label: "Nom", value: name, setter: setName, placeholder: "Jean Dupont" },
-            { label: "Email", value: email, setter: setEmail, placeholder: "votre@email.com", keyboard: "email-address" as const },
-            { label: "Mot de passe", value: password, setter: setPassword, placeholder: "••••••••", secure: true },
+            {
+              label: "Email",
+              value: email,
+              setter: setEmail,
+              placeholder: "votre@email.com",
+              keyboard: "email-address" as const,
+            },
+            {
+              label: "Mot de passe",
+              value: password,
+              setter: setPassword,
+              placeholder: "••••••••",
+              secure: true,
+            },
           ].map(({ label, value, setter, placeholder, keyboard, secure }) => (
             <View key={label} style={styles.field}>
               <Text style={styles.label}>{label}</Text>

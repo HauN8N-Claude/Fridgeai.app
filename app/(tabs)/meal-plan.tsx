@@ -40,7 +40,7 @@ export default function MealPlanScreen() {
 
   const { data: plan, isLoading } = useQuery<MealPlan | null>({
     queryKey: ["meal-plan"],
-    queryFn: () => apiRequest("/api/mobile/meal-plan").catch(() => null),
+    queryFn: () => apiRequest<MealPlan>("/api/mobile/meal-plan").catch(() => null),
   });
 
   const generateMutation = useMutation({

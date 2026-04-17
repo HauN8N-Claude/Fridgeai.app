@@ -7,7 +7,7 @@ import { useAuthStore } from "../store/auth-store";
 const queryClient = new QueryClient();
 
 function AuthGuard() {
-  const { isAuthenticated, isLoading, loadSession } = useAuthStore();
+  const { isAuthenticated, isLoading, needsOnboarding, loadSession } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -18,14 +18,19 @@ function AuthGuard() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
+    const seg = segments as string[];
+    const inAuthGroup = seg[0] === "(auth)";
+    const inOnboarding = seg[0] === "onboarding";
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/(auth)/login");
-    } else if (isAuthenticated && inAuthGroup) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } else if (isAuthenticated && needsOnboarding && !inOnboarding) {
+      router.replace("/onboarding" as any);
+    } else if (isAuthenticated && !needsOnboarding && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, needsOnboarding, segments]);
 
   return <Slot />;
 }

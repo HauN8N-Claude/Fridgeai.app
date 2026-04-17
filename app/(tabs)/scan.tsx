@@ -87,6 +87,15 @@ export default function ScanScreen() {
     });
   };
 
+  if (step === "saving") {
+    return (
+      <SafeAreaView style={[styles.safe, styles.center]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Enregistrement...</Text>
+      </SafeAreaView>
+    );
+  }
+
   if (step === "uploading") {
     return (
       <SafeAreaView style={[styles.safe, styles.center]}>
@@ -144,13 +153,9 @@ export default function ScanScreen() {
           <Pressable
             style={[styles.button, { flex: 1 }, selected.size === 0 && styles.buttonDisabled]}
             onPress={confirmIngredients}
-            disabled={selected.size === 0 || step === "saving"}
+            disabled={selected.size === 0}
           >
-            {step === "saving" ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Confirmer ({selected.size})</Text>
-            )}
+            <Text style={styles.buttonText}>Confirmer ({selected.size})</Text>
           </Pressable>
         </View>
       </SafeAreaView>
