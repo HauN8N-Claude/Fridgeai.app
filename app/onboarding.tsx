@@ -16,7 +16,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Camera,
   Check,
+  ChevronDown,
+  ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  Plus,
   ScanLine,
   Share2,
   Sparkles,
@@ -39,66 +43,64 @@ type ShoppingItem = {
   ingredient: { name: string };
 };
 type ScanSubStep = "idle" | "uploading" | "review";
-type Step = 1 | 2 | 3 | 4 | 5 | 6;
+// 0=welcome, 1-6=quiz, 7=generation, 8=results
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 // ─────────────────────────── Data ───────────────────────────
 
 const DIETARY_OPTIONS = [
-  { label: "Aucun", value: "none" },
-  { label: "Végétarien", value: "vegetarian" },
-  { label: "Végétalien", value: "vegan" },
-  { label: "Pescétarien", value: "pescatarian" },
-  { label: "Cétogène", value: "keto" },
-  { label: "Paléo", value: "paleo" },
-  { label: "Halal", value: "halal" },
-  { label: "Casher", value: "kosher" },
-];
-
-const CUISINE_OPTIONS = [
-  { label: "Française", value: "french" },
-  { label: "Italienne", value: "italian" },
-  { label: "Asiatique", value: "asian" },
-  { label: "Japonaise", value: "japanese" },
-  { label: "Mexicaine", value: "mexican" },
-  { label: "Méditerranéenne", value: "mediterranean" },
-  { label: "Indienne", value: "indian" },
-  { label: "Américaine", value: "american" },
-  { label: "Libanaise", value: "lebanese" },
-  { label: "Thaïlandaise", value: "thai" },
+  { label: "Omnivore", value: "omnivore", emoji: "🍗", desc: "Je mange de tout" },
+  { label: "Flexitarien", value: "flexitarian", emoji: "🥗", desc: "Viande occasionnellement" },
+  { label: "Végétarien", value: "vegetarian", emoji: "🌿", desc: "Sans viande ni poisson" },
+  { label: "Végan", value: "vegan", emoji: "🌱", desc: "Aucun produit animal" },
+  { label: "Pescétarien", value: "pescatarian", emoji: "🐟", desc: "Poisson mais pas de viande" },
 ];
 
 const ALLERGY_OPTIONS = [
+  { label: "Aucune", value: "none" },
   { label: "Gluten", value: "gluten" },
   { label: "Lactose", value: "dairy" },
+  { label: "Œufs", value: "eggs" },
   { label: "Arachides", value: "peanuts" },
   { label: "Fruits à coque", value: "tree_nuts" },
-  { label: "Œufs", value: "eggs" },
   { label: "Soja", value: "soy" },
-  { label: "Fruits de mer", value: "shellfish" },
   { label: "Poisson", value: "fish" },
-  { label: "Sésame", value: "sesame" },
+  { label: "Crustacés", value: "shellfish" },
 ];
 
-const INTOLERANCE_OPTIONS = [
-  { label: "Gluten", value: "gluten" },
-  { label: "Lactose", value: "lactose" },
-  { label: "Fructose", value: "fructose" },
-  { label: "Histamine", value: "histamine" },
-  { label: "FODMAP", value: "fodmap" },
-  { label: "Sulfites", value: "sulfites" },
+const PEOPLE_OPTIONS = [
+  { label: "Juste moi", value: "solo", emoji: "🧑", desc: "1 personne", count: 1 },
+  { label: "Nous deux", value: "duo", emoji: "👫", desc: "2 personnes", count: 2 },
+  { label: "Famille", value: "family", emoji: "👨‍👩‍👧", desc: "3 – 4 personnes", count: 3 },
+  { label: "Grande tablée", value: "large", emoji: "🏠", desc: "5 personnes et +", count: 5 },
 ];
 
-const DISH_SUGGESTIONS = [
-  "Poulet rôti", "Pâtes carbonara", "Pizza maison", "Risotto", "Curry de légumes",
-  "Salade César", "Steak frites", "Soupe de légumes", "Burger maison", "Saumon grillé",
-  "Quiche lorraine", "Tajine", "Pad thaï", "Ramen", "Gratin dauphinois",
+const CUISINE_OPTIONS = [
+  { label: "Française", value: "french", emoji: "🇫🇷" },
+  { label: "Italienne", value: "italian", emoji: "🇮🇹" },
+  { label: "Japonaise", value: "japanese", emoji: "🇯🇵" },
+  { label: "Méditerranéenne", value: "mediterranean", emoji: "🇬🇷" },
+  { label: "Mexicaine", value: "mexican", emoji: "🇲🇽" },
+  { label: "Indienne", value: "indian", emoji: "🇮🇳" },
+  { label: "Américaine", value: "american", emoji: "🇺🇸" },
+  { label: "Marocaine", value: "moroccan", emoji: "🇲🇦" },
+  { label: "Thaïe", value: "thai", emoji: "🇹🇭" },
 ];
 
-const PEOPLE_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
-const DURATION_OPTIONS = [
-  { label: "3 jours", value: 3 },
-  { label: "5 jours", value: 5 },
-  { label: "7 jours", value: 7 },
+const MORE_CUISINE_OPTIONS = [
+  { label: "Chinoise", value: "chinese", emoji: "🇨🇳" },
+  { label: "Coréenne", value: "korean", emoji: "🇰🇷" },
+  { label: "Vietnamienne", value: "vietnamese", emoji: "🇻🇳" },
+  { label: "Libanaise", value: "lebanese", emoji: "🇱🇧" },
+  { label: "Espagnole", value: "spanish", emoji: "🇪🇸" },
+  { label: "Brésilienne", value: "brazilian", emoji: "🇧🇷" },
+  { label: "Turque", value: "turkish", emoji: "🇹🇷" },
+  { label: "Péruvienne", value: "peruvian", emoji: "🇵🇪" },
+];
+
+const DISLIKED_OPTIONS = [
+  "Coriandre", "Olives", "Champignons", "Aubergine", "Fromage bleu",
+  "Abats", "Anchois", "Brocoli", "Épinards", "Tofu",
 ];
 
 const GEN_STEPS = [
@@ -107,52 +109,111 @@ const GEN_STEPS = [
   { label: "Génération de la liste de courses", emoji: "🛒" },
 ];
 
+// ─────────────────────────── Sub-components ───────────────────────────
+
+type QuizHeaderProps = { quizStep: number; onBack: () => void; onSkip: () => void };
+
+const QuizHeader = ({ quizStep, onBack, onSkip }: QuizHeaderProps) => (
+  <View style={styles.quizHeader}>
+    <Pressable style={styles.backBtn} onPress={onBack}>
+      <ChevronLeft size={20} color={COLORS.text} />
+    </Pressable>
+    <View style={styles.progressWrap}>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${(quizStep / 6) * 100}%` as any }]} />
+      </View>
+    </View>
+    <Pressable style={styles.passerBtn} onPress={onSkip}>
+      <Text style={styles.passerText}>Passer</Text>
+    </Pressable>
+  </View>
+);
+
 // ─────────────────────────── Component ───────────────────────────
 
 export default function OnboardingScreen() {
-  const { user, completeOnboarding } = useAuthStore();
-  const [step, setStep] = useState<Step>(1);
+  const { completeOnboarding } = useAuthStore();
+  const [step, setStep] = useState<Step>(0);
 
-  // Step 2 — Preferences
-  const [dietary, setDietary] = useState("none");
+  // Step 1 — Diet
+  const [dietary, setDietary] = useState("omnivore");
+
+  // Step 2 — Allergies
+  const [allergies, setAllergies] = useState<string[]>(["none"]);
+  const [customAllergies, setCustomAllergies] = useState<string[]>([]);
+  const [customAllergyInput, setCustomAllergyInput] = useState("");
+  const [showAllergyInput, setShowAllergyInput] = useState(false);
+
+  // Step 3 — People
+  const [householdType, setHouseholdType] = useState("");
+  const [householdNames, setHouseholdNames] = useState("");
+
+  // Step 4 — Cuisines
   const [cuisines, setCuisines] = useState<string[]>([]);
-  const [allergies, setAllergies] = useState<string[]>([]);
-  const [intolerances, setIntolerances] = useState<string[]>([]);
+  const [showMoreCuisines, setShowMoreCuisines] = useState(false);
 
-  // Step 3 — Scan
+  // Step 5 — Disliked ingredients
+  const [dislikedIngredients, setDislikedIngredients] = useState<string[]>([]);
+  const [customDislikedInput, setCustomDislikedInput] = useState("");
+  const [showDislikedInput, setShowDislikedInput] = useState(false);
+
+  // Step 6 — Scan
   const [scanSubStep, setScanSubStep] = useState<ScanSubStep>("idle");
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [selectedIngredients, setSelectedIngredients] = useState<Set<number>>(new Set());
   const [scanSkipped, setScanSkipped] = useState(false);
 
-  // Step 4 — Meal wishes
-  const [wantedDishes, setWantedDishes] = useState<string[]>([]);
-  const [dishInput, setDishInput] = useState("");
-  const [duration, setDuration] = useState(7);
-  const [numberOfPeople, setNumberOfPeople] = useState(2);
-
-  // Step 5 — Generation
+  // Step 7 — Generation
   const [genCurrentStep, setGenCurrentStep] = useState(-1);
   const [genCompletedSteps, setGenCompletedSteps] = useState<number[]>([]);
   const [genError, setGenError] = useState<string | null>(null);
 
-  // Step 6 — Shopping list
+  // Step 8 — Results
   const [shoppingList, setShoppingList] = useState<ShoppingItem[]>([]);
 
   // ── Helpers ──
 
-  const toggleList = (value: string, list: string[], setList: (v: string[]) => void) => {
-    setList(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
+  const numberOfPeople = PEOPLE_OPTIONS.find((o) => o.value === householdType)?.count ?? 2;
+
+  const toggleAllergy = (value: string) => {
+    if (value === "none") {
+      setAllergies(["none"]);
+    } else {
+      setAllergies((prev) => {
+        const without = prev.filter((x) => x !== "none");
+        return without.includes(value) ? without.filter((x) => x !== value) : [...without, value];
+      });
+    }
   };
 
-  const addDish = (dish: string) => {
-    const trimmed = dish.trim();
-    if (!trimmed || wantedDishes.includes(trimmed)) return;
-    setWantedDishes((prev) => [...prev, trimmed]);
-    setDishInput("");
+  const addCustomAllergy = () => {
+    const trimmed = customAllergyInput.trim();
+    if (!trimmed || customAllergies.includes(trimmed)) return;
+    setCustomAllergies((prev) => [...prev, trimmed]);
+    setCustomAllergyInput("");
+    setAllergies((prev) => prev.filter((x) => x !== "none"));
   };
 
-  // ── Scan logic ──
+  const toggleCuisine = (value: string) => {
+    setCuisines((prev) =>
+      prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value]
+    );
+  };
+
+  const toggleDisliked = (name: string) => {
+    setDislikedIngredients((prev) =>
+      prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
+    );
+  };
+
+  const addCustomDisliked = () => {
+    const trimmed = customDislikedInput.trim();
+    if (!trimmed || dislikedIngredients.includes(trimmed)) return;
+    setDislikedIngredients((prev) => [...prev, trimmed]);
+    setCustomDislikedInput("");
+  };
+
+  // ── Scan ──
 
   const pickImage = async (fromCamera: boolean) => {
     const result = fromCamera
@@ -190,23 +251,24 @@ export default function OnboardingScreen() {
   // ── Generation ──
 
   const handleGenerate = async () => {
-    setStep(5);
+    setStep(7);
     setGenCurrentStep(0);
     setGenCompletedSteps([]);
     setGenError(null);
 
     try {
-      // Phase 0: save preferences + confirm scan
       await apiRequest("/api/mobile/preferences", {
         method: "POST",
         body: {
           dietaryType: dietary,
-          allergies,
-          intolerances,
+          allergies: [...allergies.filter((a) => a !== "none"), ...customAllergies],
+          intolerances: [],
           cuisinePreferences: cuisines,
+          dislikedIngredients,
           numberOfPeople,
         },
       });
+
       if (scanResult && !scanSkipped) {
         const confirmed = scanResult.ingredients.filter((_, i) => selectedIngredients.has(i));
         await apiRequest("/api/mobile/scan/confirm", {
@@ -214,25 +276,24 @@ export default function OnboardingScreen() {
           body: { scanId: scanResult.scanId, ingredients: confirmed },
         });
       }
+
       setGenCompletedSteps([0]);
       setGenCurrentStep(1);
 
-      // Phase 1: generate meal plan
       await apiRequest("/api/mobile/meal-plan", {
         method: "POST",
-        body: { duration, numberOfPeople, wishList: wantedDishes },
+        body: { duration: 7, numberOfPeople, wishList: [] },
       });
       setGenCompletedSteps([0, 1]);
       setGenCurrentStep(2);
 
-      // Phase 2: generate shopping list
       const shopping = await apiRequest<ShoppingItem[]>("/api/mobile/shopping", { method: "POST" });
       setShoppingList(Array.isArray(shopping) ? shopping : []);
       setGenCompletedSteps([0, 1, 2]);
       setGenCurrentStep(-1);
 
       await new Promise((r) => setTimeout(r, 600));
-      setStep(6);
+      setStep(8);
     } catch (err) {
       setGenError((err as Error).message);
     }
@@ -245,33 +306,19 @@ export default function OnboardingScreen() {
       .filter((i) => !i.checked)
       .map((i) => `• ${i.ingredient.name}${i.quantity ? ` — ${i.quantity}${i.unit ? " " + i.unit : ""}` : ""}`)
       .join("\n");
-
     try {
       await Share.share({
         message: `🛒 Liste de courses — FridAI\n\n${lines || "Aucun article à acheter."}\n\nGénérée avec FridAI`,
         title: "Liste de courses",
       });
     } catch {
-      // user dismissed share sheet — no-op
+      // user dismissed
     }
   };
 
-  // ── Step indicator (steps 2–4) ──
+  // ─────────────────────────── Step 0: Welcome ───────────────────────────
 
-  const StepIndicator = ({ current }: { current: number }) => (
-    <View style={styles.stepIndicator}>
-      {[1, 2, 3].map((i) => (
-        <View key={i} style={styles.stepIndicatorRow}>
-          <View style={[styles.stepDot, i <= current && styles.stepDotActive]} />
-          {i < 3 && <View style={[styles.stepLine, i < current && styles.stepLineActive]} />}
-        </View>
-      ))}
-    </View>
-  );
-
-  // ─────────────────────────── Step 1: Welcome ───────────────────────────
-
-  if (step === 1) {
+  if (step === 0) {
     return (
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.scroll}>
@@ -282,21 +329,9 @@ export default function OnboardingScreen() {
 
           <View style={styles.featureCards}>
             {[
-              {
-                emoji: "📸",
-                title: "Scannez votre frigo",
-                desc: "Prenez une photo, l'IA détecte automatiquement vos ingrédients",
-              },
-              {
-                emoji: "🍽️",
-                title: "Plan repas personnalisé",
-                desc: "Généré en 90 secondes selon vos goûts et vos restes",
-              },
-              {
-                emoji: "🛒",
-                title: "Liste de courses",
-                desc: "Uniquement ce qui manque, rien de superflu",
-              },
+              { emoji: "📸", title: "Scannez votre frigo", desc: "Prenez une photo, l'IA détecte automatiquement vos ingrédients" },
+              { emoji: "🍽️", title: "Plan repas personnalisé", desc: "Généré en 90 secondes selon vos goûts et vos restes" },
+              { emoji: "🛒", title: "Liste de courses", desc: "Uniquement ce qui manque, rien de superflu" },
             ].map((f) => (
               <View key={f.title} style={styles.featureCard}>
                 <Text style={styles.featureEmoji}>{f.emoji}</Text>
@@ -308,7 +343,7 @@ export default function OnboardingScreen() {
             ))}
           </View>
 
-          <Pressable style={styles.btn} onPress={() => setStep(2)}>
+          <Pressable style={styles.btn} onPress={() => setStep(1)}>
             <Text style={styles.btnText}>Commencer</Text>
             <ChevronRight size={18} color="#fff" />
           </Pressable>
@@ -317,91 +352,48 @@ export default function OnboardingScreen() {
     );
   }
 
-  // ─────────────────────────── Step 2: Preferences quiz ───────────────────────────
+  // ─────────────────────────── Step 1: Régime alimentaire ───────────────────────────
 
-  if (step === 2) {
+  if (step === 1) {
     return (
       <SafeAreaView style={styles.safe}>
-        <StepIndicator current={1} />
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <QuizHeader
+          quizStep={1}
+          onBack={() => setStep(0)}
+          onSkip={() => setStep(2)}
+        />
+        <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.stepHeader}>
-            <Text style={styles.stepTitle}>Vos préférences</Text>
-            <Text style={styles.stepSubtitle}>Personnalisez votre expérience FridAI</Text>
+            <Text style={styles.stepTitle}>Quel est ton régime alimentaire ?</Text>
+            <Text style={styles.stepSubtitle}>On adapte tes recettes en conséquence.</Text>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Régime alimentaire</Text>
-            <View style={styles.chips}>
-              {DIETARY_OPTIONS.map((opt) => (
+          <View style={styles.dietList}>
+            {DIETARY_OPTIONS.map((opt) => {
+              const active = dietary === opt.value;
+              return (
                 <Pressable
                   key={opt.value}
-                  style={[styles.chip, dietary === opt.value && styles.chipActive]}
+                  style={[styles.dietCard, active && styles.dietCardActive]}
                   onPress={() => setDietary(opt.value)}
                 >
-                  <Text style={[styles.chipText, dietary === opt.value && styles.chipTextActive]}>
-                    {opt.label}
-                  </Text>
+                  <View style={styles.dietIconWrap}>
+                    <Text style={styles.dietEmoji}>{opt.emoji}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.dietLabel, active && styles.dietLabelActive]}>{opt.label}</Text>
+                    <Text style={styles.dietDesc}>{opt.desc}</Text>
+                  </View>
+                  <View style={[styles.radioOuter, active && styles.radioOuterActive]}>
+                    {active && <View style={styles.radioInner} />}
+                  </View>
                 </Pressable>
-              ))}
-            </View>
+              );
+            })}
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Cuisines favorites</Text>
-            <View style={styles.chips}>
-              {CUISINE_OPTIONS.map((opt) => {
-                const active = cuisines.includes(opt.value);
-                return (
-                  <Pressable
-                    key={opt.value}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => toggleList(opt.value, cuisines, setCuisines)}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Allergies</Text>
-            <View style={styles.chips}>
-              {ALLERGY_OPTIONS.map((opt) => {
-                const active = allergies.includes(opt.value);
-                return (
-                  <Pressable
-                    key={opt.value}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => toggleList(opt.value, allergies, setAllergies)}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Intolérances</Text>
-            <View style={styles.chips}>
-              {INTOLERANCE_OPTIONS.map((opt) => {
-                const active = intolerances.includes(opt.value);
-                return (
-                  <Pressable
-                    key={opt.value}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => toggleList(opt.value, intolerances, setIntolerances)}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <Pressable style={styles.btn} onPress={() => setStep(3)}>
-            <Text style={styles.btnText}>Suivant</Text>
+          <Pressable style={styles.btn} onPress={() => setStep(2)}>
+            <Text style={styles.btnText}>Continuer</Text>
             <ChevronRight size={18} color="#fff" />
           </Pressable>
         </ScrollView>
@@ -409,9 +401,301 @@ export default function OnboardingScreen() {
     );
   }
 
-  // ─────────────────────────── Step 3: Scan ───────────────────────────
+  // ─────────────────────────── Step 2: Allergies ───────────────────────────
+
+  if (step === 2) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <QuizHeader
+          quizStep={2}
+          onBack={() => setStep(1)}
+          onSkip={() => setStep(3)}
+        />
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepTitle}>Des allergies ou intolérances ?</Text>
+            <Text style={styles.stepSubtitle}>Sélectionne tout ce qui s'applique.</Text>
+          </View>
+
+          <View style={styles.chips}>
+            {ALLERGY_OPTIONS.map((opt) => {
+              const active = allergies.includes(opt.value);
+              return (
+                <Pressable
+                  key={opt.value}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => toggleAllergy(opt.value)}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {active && opt.value === "none" ? "✓ " : ""}{opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+
+            {customAllergies.map((name) => (
+              <Pressable
+                key={name}
+                style={[styles.chip, styles.chipActive, styles.chipCustom]}
+                onPress={() => setCustomAllergies((prev) => prev.filter((x) => x !== name))}
+              >
+                <Text style={[styles.chipText, styles.chipTextActive]}>{name}</Text>
+                <X size={11} color="#fff" />
+              </Pressable>
+            ))}
+
+            <Pressable
+              style={[styles.chip, styles.chipAddBtn]}
+              onPress={() => setShowAllergyInput((v) => !v)}
+            >
+              <Plus size={13} color={COLORS.primary} />
+              <Text style={styles.chipAddText}>Autre</Text>
+            </Pressable>
+          </View>
+
+          {showAllergyInput && (
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                placeholder="Ex: Céleri, Moutarde..."
+                placeholderTextColor={COLORS.muted}
+                value={customAllergyInput}
+                onChangeText={setCustomAllergyInput}
+                onSubmitEditing={addCustomAllergy}
+                returnKeyType="done"
+                autoFocus
+              />
+              <Pressable
+                style={[styles.inputAddBtn, !customAllergyInput.trim() && { opacity: 0.4 }]}
+                onPress={addCustomAllergy}
+                disabled={!customAllergyInput.trim()}
+              >
+                <Text style={styles.inputAddBtnText}>+</Text>
+              </Pressable>
+            </View>
+          )}
+
+          <Pressable style={styles.btn} onPress={() => setStep(3)}>
+            <Text style={styles.btnText}>Continuer</Text>
+            <ChevronRight size={18} color="#fff" />
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ─────────────────────────── Step 3: Nombre de personnes ───────────────────────────
 
   if (step === 3) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <QuizHeader
+          quizStep={3}
+          onBack={() => setStep(2)}
+          onSkip={() => setStep(4)}
+        />
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepTitle}>Tu cuisines pour combien de personnes ?</Text>
+            <Text style={styles.stepSubtitle}>
+              FridAI adapte les portions et les quantités à ton foyer.
+            </Text>
+          </View>
+
+          <View style={styles.peopleGrid}>
+            {PEOPLE_OPTIONS.map((opt) => {
+              const active = householdType === opt.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  style={[styles.peopleCard, active && styles.peopleCardActive]}
+                  onPress={() => setHouseholdType(opt.value)}
+                >
+                  <Text style={styles.peopleEmoji}>{opt.emoji}</Text>
+                  <Text style={[styles.peopleLabel, active && styles.peopleLabelActive]}>
+                    {opt.label}
+                  </Text>
+                  <Text style={styles.peopleDesc}>{opt.desc}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Prénom(s) (optionnel)</Text>
+            <TextInput
+              style={[styles.input, styles.inputDark]}
+              placeholder="Sarah, Clément..."
+              placeholderTextColor="rgba(255,255,255,0.45)"
+              value={householdNames}
+              onChangeText={setHouseholdNames}
+            />
+          </View>
+
+          <Pressable
+            style={[styles.btn, !householdType && styles.btnDisabled]}
+            onPress={() => { if (householdType) setStep(4); }}
+            disabled={!householdType}
+          >
+            <Text style={styles.btnText}>Continuer</Text>
+            <ChevronRight size={18} color="#fff" />
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ─────────────────────────── Step 4: Cuisines préférées ───────────────────────────
+
+  if (step === 4) {
+    const displayedCuisines = showMoreCuisines
+      ? [...CUISINE_OPTIONS, ...MORE_CUISINE_OPTIONS]
+      : CUISINE_OPTIONS;
+
+    return (
+      <SafeAreaView style={styles.safe}>
+        <QuizHeader
+          quizStep={4}
+          onBack={() => setStep(3)}
+          onSkip={() => setStep(5)}
+        />
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepTitle}>Tes cuisines préférées ?</Text>
+            <Text style={styles.stepSubtitle}>
+              Choisis-en au moins 2 — FridAI s'en souviendra pour varier tes menus.
+            </Text>
+          </View>
+
+          <View style={styles.cuisineGrid}>
+            {displayedCuisines.map((opt) => {
+              const active = cuisines.includes(opt.value);
+              return (
+                <Pressable
+                  key={opt.value}
+                  style={[styles.cuisineCard, active && styles.cuisineCardActive]}
+                  onPress={() => toggleCuisine(opt.value)}
+                >
+                  <Text style={styles.cuisineEmoji}>{opt.emoji}</Text>
+                  <Text style={[styles.cuisineLabel, active && styles.cuisineLabelActive]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Pressable
+            style={styles.moreCuisinesBtn}
+            onPress={() => setShowMoreCuisines((v) => !v)}
+          >
+            {showMoreCuisines
+              ? <ChevronUp size={15} color={COLORS.primary} />
+              : <ChevronDown size={15} color={COLORS.primary} />}
+            <Text style={styles.moreCuisinesText}>
+              {showMoreCuisines ? "Voir moins" : "Voir d'autres cuisines"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.btn, cuisines.length < 2 && styles.btnDisabled]}
+            onPress={() => { if (cuisines.length >= 2) setStep(5); }}
+            disabled={cuisines.length < 2}
+          >
+            <Text style={styles.btnText}>Continuer</Text>
+            <ChevronRight size={18} color="#fff" />
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ─────────────────────────── Step 5: Ingrédients détestés ───────────────────────────
+
+  if (step === 5) {
+    const customDisliked = dislikedIngredients.filter((d) => !DISLIKED_OPTIONS.includes(d));
+
+    return (
+      <SafeAreaView style={styles.safe}>
+        <QuizHeader
+          quizStep={5}
+          onBack={() => setStep(4)}
+          onSkip={() => setStep(6)}
+        />
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepTitle}>Des ingrédients que tu détestes ?</Text>
+            <Text style={styles.stepSubtitle}>On ne te les proposera jamais. Promis.</Text>
+          </View>
+
+          <View style={styles.chips}>
+            {DISLIKED_OPTIONS.map((name) => {
+              const active = dislikedIngredients.includes(name);
+              return (
+                <Pressable
+                  key={name}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => toggleDisliked(name)}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{name}</Text>
+                </Pressable>
+              );
+            })}
+
+            {customDisliked.map((name) => (
+              <Pressable
+                key={name}
+                style={[styles.chip, styles.chipActive, styles.chipCustom]}
+                onPress={() => toggleDisliked(name)}
+              >
+                <Text style={[styles.chipText, styles.chipTextActive]}>{name}</Text>
+                <X size={11} color="#fff" />
+              </Pressable>
+            ))}
+
+            <Pressable
+              style={[styles.chip, styles.chipAddBtn]}
+              onPress={() => setShowDislikedInput((v) => !v)}
+            >
+              <Plus size={13} color={COLORS.primary} />
+              <Text style={styles.chipAddText}>Ajouter</Text>
+            </Pressable>
+          </View>
+
+          {showDislikedInput && (
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                placeholder="Ex: Poivrons, Betteraves..."
+                placeholderTextColor={COLORS.muted}
+                value={customDislikedInput}
+                onChangeText={setCustomDislikedInput}
+                onSubmitEditing={addCustomDisliked}
+                returnKeyType="done"
+                autoFocus
+              />
+              <Pressable
+                style={[styles.inputAddBtn, !customDislikedInput.trim() && { opacity: 0.4 }]}
+                onPress={addCustomDisliked}
+                disabled={!customDislikedInput.trim()}
+              >
+                <Text style={styles.inputAddBtnText}>+</Text>
+              </Pressable>
+            </View>
+          )}
+
+          <Pressable style={styles.btn} onPress={() => setStep(6)}>
+            <Text style={styles.btnText}>Continuer</Text>
+            <ChevronRight size={18} color="#fff" />
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ─────────────────────────── Step 6: Scan ───────────────────────────
+
+  if (step === 6) {
     if (scanSubStep === "uploading") {
       return (
         <SafeAreaView style={[styles.safe, styles.center]}>
@@ -425,7 +709,11 @@ export default function OnboardingScreen() {
     if (scanSubStep === "review" && scanResult) {
       return (
         <SafeAreaView style={styles.safe} edges={["bottom"]}>
-          <StepIndicator current={2} />
+          <QuizHeader
+            quizStep={6}
+            onBack={() => setScanSubStep("idle")}
+            onSkip={() => { setScanSkipped(true); handleGenerate(); }}
+          />
           <Image source={{ uri: scanResult.imageUrl }} style={styles.previewImage} />
 
           <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
@@ -458,7 +746,7 @@ export default function OnboardingScreen() {
             <Pressable style={styles.btnSecondary} onPress={() => setScanSubStep("idle")}>
               <Text style={styles.btnSecondaryText}>Recommencer</Text>
             </Pressable>
-            <Pressable style={[styles.btn, { flex: 1 }]} onPress={() => setStep(4)}>
+            <Pressable style={[styles.btn, { flex: 1 }]} onPress={handleGenerate}>
               <Text style={styles.btnText}>Confirmer ({selectedIngredients.size})</Text>
             </Pressable>
           </View>
@@ -468,7 +756,11 @@ export default function OnboardingScreen() {
 
     return (
       <SafeAreaView style={styles.safe}>
-        <StepIndicator current={2} />
+        <QuizHeader
+          quizStep={6}
+          onBack={() => setStep(5)}
+          onSkip={() => { setScanSkipped(true); handleGenerate(); }}
+        />
         <View style={[styles.center, { flex: 1 }]}>
           <View style={styles.scanIconWrap}>
             <ScanLine size={64} color={COLORS.primary} />
@@ -488,10 +780,7 @@ export default function OnboardingScreen() {
             </Pressable>
             <Pressable
               style={styles.skipBtn}
-              onPress={() => {
-                setScanSkipped(true);
-                setStep(4);
-              }}
+              onPress={() => { setScanSkipped(true); handleGenerate(); }}
             >
               <Text style={styles.skipText}>Passer cette étape</Text>
             </Pressable>
@@ -501,119 +790,9 @@ export default function OnboardingScreen() {
     );
   }
 
-  // ─────────────────────────── Step 4: Meal wishes ───────────────────────────
+  // ─────────────────────────── Step 7: Generation ───────────────────────────
 
-  if (step === 4) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <StepIndicator current={3} />
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.stepHeader}>
-            <Text style={styles.stepTitle}>Vos envies du moment</Text>
-            <Text style={styles.stepSubtitle}>Dites-nous ce que vous aimeriez manger cette semaine</Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Suggestions</Text>
-            <View style={styles.chips}>
-              {DISH_SUGGESTIONS.map((dish) => {
-                const active = wantedDishes.includes(dish);
-                return (
-                  <Pressable
-                    key={dish}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() =>
-                      active
-                        ? setWantedDishes((prev) => prev.filter((d) => d !== dish))
-                        : addDish(dish)
-                    }
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{dish}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Ajouter un plat</Text>
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.input}
-                placeholder="Ex: Lasagnes, Couscous..."
-                placeholderTextColor={COLORS.muted}
-                value={dishInput}
-                onChangeText={setDishInput}
-                onSubmitEditing={() => addDish(dishInput)}
-                returnKeyType="done"
-              />
-              <Pressable
-                style={[styles.inputAddBtn, !dishInput.trim() && { opacity: 0.4 }]}
-                onPress={() => addDish(dishInput)}
-                disabled={!dishInput.trim()}
-              >
-                <Text style={styles.inputAddBtnText}>+</Text>
-              </Pressable>
-            </View>
-
-            {wantedDishes.length > 0 && (
-              <View style={styles.selectedDishes}>
-                {wantedDishes.map((dish) => (
-                  <View key={dish} style={styles.selectedDish}>
-                    <Text style={styles.selectedDishText}>{dish}</Text>
-                    <Pressable onPress={() => setWantedDishes((prev) => prev.filter((d) => d !== dish))}>
-                      <X size={14} color={COLORS.primary} />
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Durée du plan</Text>
-            <View style={styles.chips}>
-              {DURATION_OPTIONS.map((opt) => (
-                <Pressable
-                  key={opt.value}
-                  style={[styles.chip, duration === opt.value && styles.chipActive]}
-                  onPress={() => setDuration(opt.value)}
-                >
-                  <Text style={[styles.chipText, duration === opt.value && styles.chipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Nombre de personnes</Text>
-            <View style={styles.chips}>
-              {PEOPLE_OPTIONS.map((n) => (
-                <Pressable
-                  key={n}
-                  style={[styles.chip, styles.chipSquare, numberOfPeople === n && styles.chipActive]}
-                  onPress={() => setNumberOfPeople(n)}
-                >
-                  <Text style={[styles.chipText, numberOfPeople === n && styles.chipTextActive]}>{n}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <Pressable style={styles.btn} onPress={handleGenerate}>
-            <Sparkles size={18} color="#fff" />
-            <Text style={styles.btnText}>Générer ma liste de courses</Text>
-          </Pressable>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // ─────────────────────────── Step 5: Generation ───────────────────────────
-
-  if (step === 5) {
+  if (step === 7) {
     return (
       <SafeAreaView style={[styles.safe, styles.center]}>
         <Text style={styles.genTitle}>FridAI prépare votre semaine</Text>
@@ -668,7 +847,7 @@ export default function OnboardingScreen() {
     );
   }
 
-  // ─────────────────────────── Step 6: Shopping list + share ───────────────────────────
+  // ─────────────────────────── Step 8: Shopping list ───────────────────────────
 
   const unchecked = shoppingList.filter((i) => !i.checked);
   const checked = shoppingList.filter((i) => i.checked);
@@ -732,22 +911,41 @@ export default function OnboardingScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { padding: 24, gap: 24 },
+  scroll: { padding: 24, gap: 24, paddingBottom: 40 },
   center: { justifyContent: "center", alignItems: "center", padding: 24, gap: 16 },
 
-  // Step indicator
-  stepIndicator: {
+  // Quiz header + progress bar
+  quizHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    gap: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
   },
-  stepIndicatorRow: { flexDirection: "row", alignItems: "center" },
-  stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.border },
-  stepDotActive: { backgroundColor: COLORS.primary },
-  stepLine: { width: 40, height: 2, backgroundColor: COLORS.border },
-  stepLineActive: { backgroundColor: COLORS.primary },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  progressWrap: { flex: 1 },
+  progressTrack: {
+    height: 4,
+    backgroundColor: COLORS.border,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: 4,
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
+  },
+  passerBtn: { paddingHorizontal: 4 },
+  passerText: { fontSize: 14, color: COLORS.muted, fontWeight: "500" },
 
   // Welcome
   welcomeHeader: { alignItems: "center", gap: 8, paddingTop: 16 },
@@ -770,11 +968,127 @@ const styles = StyleSheet.create({
 
   // Step header
   stepHeader: { gap: 6 },
-  stepTitle: { fontSize: 22, fontWeight: "700", color: COLORS.text },
+  stepTitle: { fontSize: 24, fontWeight: "700", color: COLORS.text, lineHeight: 30 },
   stepSubtitle: { fontSize: 14, color: COLORS.muted, lineHeight: 20 },
 
-  // Sections & chips
-  section: { gap: 10 },
+  // Diet cards (step 1)
+  dietList: { gap: 10 },
+  dietCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  dietCardActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+  dietIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: COLORS.background,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dietEmoji: { fontSize: 22 },
+  dietLabel: { fontSize: 15, fontWeight: "600", color: COLORS.text },
+  dietLabelActive: { color: COLORS.primary },
+  dietDesc: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioOuterActive: { borderColor: COLORS.primary },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+
+  // People grid (step 3)
+  peopleGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  peopleCard: {
+    width: "47.5%",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  peopleCardActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+  peopleEmoji: { fontSize: 28 },
+  peopleLabel: { fontSize: 14, fontWeight: "600", color: COLORS.text, textAlign: "center" },
+  peopleLabelActive: { color: COLORS.primary },
+  peopleDesc: { fontSize: 12, color: COLORS.muted, textAlign: "center" },
+
+  // Cuisine grid (step 4)
+  cuisineGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  cuisineCard: {
+    width: "30%",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  cuisineCardActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+  cuisineEmoji: { fontSize: 26 },
+  cuisineLabel: { fontSize: 11, fontWeight: "500", color: COLORS.muted, textAlign: "center" },
+  cuisineLabelActive: { color: COLORS.primary, fontWeight: "600" },
+  moreCuisinesBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryLight,
+  },
+  moreCuisinesText: { fontSize: 14, color: COLORS.primary, fontWeight: "600" },
+
+  // Chips
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  chipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
+  chipCustom: { paddingHorizontal: 10 },
+  chipText: { fontSize: 14, color: COLORS.muted, fontWeight: "500" },
+  chipTextActive: { color: "#fff", fontWeight: "600" },
+  chipAddBtn: { borderColor: COLORS.primary, borderStyle: "dashed" },
+  chipAddText: { fontSize: 14, color: COLORS.primary, fontWeight: "600" },
+
+  // Sections
+  section: { gap: 8 },
   sectionLabel: {
     fontSize: 13,
     fontWeight: "600",
@@ -782,18 +1096,33 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
+
+  // Inputs
+  inputRow: { flexDirection: "row", gap: 8 },
+  input: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 10,
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    borderRadius: 20,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: COLORS.text,
   },
-  chipSquare: { minWidth: 44, alignItems: "center", borderRadius: 10, paddingHorizontal: 8 },
-  chipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
-  chipText: { fontSize: 14, color: COLORS.muted, fontWeight: "500" },
-  chipTextActive: { color: COLORS.primary, fontWeight: "600" },
+  inputDark: {
+    backgroundColor: COLORS.darkBg,
+    borderColor: "transparent",
+    color: "#fff",
+  },
+  inputAddBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  inputAddBtnText: { color: "#fff", fontSize: 22, fontWeight: "600" },
 
   // Scan
   scanIconWrap: { marginBottom: 8 },
@@ -823,42 +1152,7 @@ const styles = StyleSheet.create({
   checkboxActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   reviewActions: { flexDirection: "row", gap: 12, padding: 16 },
 
-  // Step 4 — dishes
-  inputRow: { flexDirection: "row", gap: 8 },
-  input: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  inputAddBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingHorizontal: 18,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  inputAddBtnText: { color: "#fff", fontSize: 22, fontWeight: "600" },
-  selectedDishes: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
-  selectedDish: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: COLORS.primaryLight,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-  },
-  selectedDishText: { fontSize: 13, color: COLORS.primary, fontWeight: "500" },
-
-  // Step 5 — generation
+  // Generation (step 7)
   genTitle: { fontSize: 22, fontWeight: "700", color: COLORS.text, textAlign: "center" },
   genSubtitle: { fontSize: 14, color: COLORS.muted, textAlign: "center", lineHeight: 20 },
   genStepsList: { gap: 20, marginTop: 32, width: "100%" },
@@ -882,7 +1176,7 @@ const styles = StyleSheet.create({
   loadingTitle: { fontSize: 18, fontWeight: "600", color: COLORS.text },
   loadingSubtext: { fontSize: 14, color: COLORS.muted },
 
-  // Step 6 — shopping + share
+  // Shopping list (step 8)
   step6Header: { padding: 20, paddingBottom: 4 },
   step6Title: { fontSize: 22, fontWeight: "700", color: COLORS.text },
   step6Subtitle: { fontSize: 14, color: COLORS.muted, marginTop: 4 },
@@ -930,6 +1224,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  btnDisabled: { backgroundColor: COLORS.border },
   btnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   btnSecondary: {
     borderWidth: 1.5,
