@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Eye, EyeOff } from "lucide-react-native";
 import { COLORS } from "../../lib/theme";
 import { useAuthStore } from "../../store/auth-store";
+import { useQuizStore } from "../../store/quiz-store";
 
 export default function RegisterScreen() {
   const [name, setName] = useState("");
@@ -25,6 +26,7 @@ export default function RegisterScreen() {
   const [focused, setFocused] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { register } = useAuthStore();
+  const { step: quizStep } = useQuizStore();
   const router = useRouter();
 
   const handleRegister = async () => {
@@ -39,6 +41,8 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register(name, email, password);
+      // Si l'utilisateur venait du quiz (step 6), il est redirigé automatiquement
+      // vers /onboarding par l'auth guard (needsOnboarding: true après register)
     } catch (err) {
       Alert.alert("Erreur", (err as Error).message);
     } finally {

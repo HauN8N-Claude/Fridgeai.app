@@ -109,9 +109,9 @@ export default function LandingScreen() {
         <View style={styles.actions}>
           <Pressable
             style={({ pressed }) => [styles.btnPrimary, pressed && styles.btnPressed]}
-            onPress={() => router.push("/(auth)/register")}
+            onPress={() => router.push("/onboarding" as any)}
           >
-            <Text style={styles.btnPrimaryText}>Commencer gratuitement</Text>
+            <Text style={styles.btnPrimaryText}>Commencer gratuitement →</Text>
           </Pressable>
 
           <Pressable

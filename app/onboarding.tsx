@@ -30,6 +30,7 @@ import { useRouter } from "expo-router";
 import { apiRequest } from "../lib/api";
 import { COLORS } from "../lib/theme";
 import { useAuthStore } from "../store/auth-store";
+import { useQuizStore } from "../store/quiz-store";
 
 // ─────────────────────────── Types ───────────────────────────
 
@@ -137,9 +138,10 @@ const QuizHeader = ({ quizStep, onBack, onSkip }: QuizHeaderProps) => (
 // ─────────────────────────── Component ───────────────────────────
 
 export default function OnboardingScreen() {
-  const { completeOnboarding } = useAuthStore();
+  const { completeOnboarding, isAuthenticated } = useAuthStore();
+  const { step: savedStep, setStep: saveStep } = useQuizStore();
   const router = useRouter();
-  const [step, setStep] = useState<Step>(0);
+  const [step, setStep] = useState<Step>((savedStep as Step) ?? 0);
 
   // Step 1 — Diet
   const [dietary, setDietary] = useState("omnivore");
@@ -753,6 +755,38 @@ export default function OnboardingScreen() {
             <Pressable style={[styles.btn, { flex: 1 }]} onPress={handleGenerate}>
               <Text style={styles.btnText}>Confirmer ({selectedIngredients.size})</Text>
             </Pressable>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
+    // Guest gate — scan requiert un compte
+    if (!isAuthenticated) {
+      return (
+        <SafeAreaView style={styles.safe}>
+          <QuizHeader quizStep={6} onBack={() => setStep(5)} />
+          <View style={[styles.center, { flex: 1 }]}>
+            <View style={styles.scanIconWrap}>
+              <ScanLine size={64} color={COLORS.primary} />
+            </View>
+            <Text style={styles.stepTitle}>Activez le scan IA</Text>
+            <Text style={[styles.stepSubtitle, { textAlign: "center", paddingHorizontal: 32 }]}>
+              Créez votre compte gratuit pour scanner votre frigo avec l'IA et générer votre liste de courses.
+            </Text>
+            <View style={styles.scanActions}>
+              <Pressable
+                style={styles.btn}
+                onPress={() => {
+                  saveStep(6);
+                  router.push("/(auth)/register" as any);
+                }}
+              >
+                <Text style={styles.btnText}>Créer mon compte gratuit →</Text>
+              </Pressable>
+              <Pressable style={styles.btnSecondary} onPress={() => router.push("/(auth)/login" as any)}>
+                <Text style={styles.btnSecondaryText}>J'ai déjà un compte</Text>
+              </Pressable>
+            </View>
           </View>
         </SafeAreaView>
       );
