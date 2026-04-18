@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, Check, ScanLine } from "lucide-react-native";
+import { Camera, Check, Crown, ScanLine } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -13,8 +13,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { apiRequest } from "../../lib/api";
 import { COLORS } from "../../lib/theme";
+import { useSubscriptionStore } from "../../store/subscription-store";
 
 type DetectedIngredient = { name: string; quantity?: number; unit?: string };
 
@@ -28,11 +30,26 @@ type Step = "idle" | "uploading" | "review" | "saving" | "done";
 
 export default function ScanScreen() {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { isPremium } = useSubscriptionStore();
+  const [scanCount, setScanCount] = useState(0);
   const [step, setStep] = useState<Step>("idle");
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const pickImage = async (fromCamera: boolean) => {
+    if (!isPremium && scanCount >= 1) {
+      Alert.alert(
+        "Limite atteinte",
+        "Le plan gratuit inclut 1 scan. Passe à FridAI Premium pour des scans illimités.",
+        [
+          { text: "Plus tard", style: "cancel" },
+          { text: "Voir les offres", onPress: () => router.push("/paywall" as any) },
+        ],
+      );
+      return;
+    }
+
     const result = fromCamera
       ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 })
       : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
@@ -49,6 +66,7 @@ export default function ScanScreen() {
       const data = await apiRequest<ScanResult>("/api/mobile/scan", { method: "POST", formData });
       setScanResult(data);
       setSelected(new Set(data.ingredients.map((_, i) => i)));
+      setScanCount((n) => n + 1);
       setStep("review");
     } catch (err) {
       Alert.alert("Erreur", (err as Error).message);
@@ -170,6 +188,15 @@ export default function ScanScreen() {
       <Text style={styles.idleTitle}>Scanner votre frigo</Text>
       <Text style={styles.idleText}>Prenez une photo ou importez une image pour détecter les aliments automatiquement</Text>
 
+      {!isPremium && (
+        <Pressable style={styles.premiumBanner} onPress={() => router.push("/paywall" as any)}>
+          <Crown size={14} color={COLORS.accent} />
+          <Text style={styles.premiumBannerText}>
+            {scanCount >= 1 ? "Scan gratuit utilisé — Passer à Premium" : "1 scan gratuit inclus · Premium = illimité"}
+          </Text>
+        </Pressable>
+      )}
+
       <View style={styles.idleActions}>
         <Pressable style={styles.button} onPress={() => pickImage(true)}>
           <Camera size={20} color="#fff" style={{ marginRight: 8 }} />
@@ -203,6 +230,18 @@ const styles = StyleSheet.create({
   ingredientName: { fontSize: 15, fontWeight: "500", color: COLORS.text },
   ingredientQty: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
   reviewActions: { flexDirection: "row", gap: 12, padding: 16 },
+  premiumBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FFF8F5",
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  premiumBannerText: { fontSize: 13, color: COLORS.accent, fontWeight: "600" },
   button: { backgroundColor: COLORS.primary, borderRadius: 12, padding: 16, alignItems: "center", justifyContent: "center", flexDirection: "row" },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },

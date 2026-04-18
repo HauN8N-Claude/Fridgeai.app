@@ -70,12 +70,6 @@ const ALLERGY_OPTIONS = [
   { label: "Crustacés", value: "shellfish" },
 ];
 
-const PEOPLE_OPTIONS = [
-  { label: "Juste moi", value: "solo", emoji: "🧑", desc: "1 personne", count: 1 },
-  { label: "Nous deux", value: "duo", emoji: "👫", desc: "2 personnes", count: 2 },
-  { label: "Famille", value: "family", emoji: "👨‍👩‍👧", desc: "3 – 4 personnes", count: 3 },
-  { label: "Grande tablée", value: "large", emoji: "🏠", desc: "5 personnes et +", count: 5 },
-];
 
 const CUISINE_OPTIONS = [
   { label: "Française", value: "french", emoji: "🇫🇷" },
