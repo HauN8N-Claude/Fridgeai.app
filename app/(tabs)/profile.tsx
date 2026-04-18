@@ -11,11 +11,18 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronRight, Crown, RefreshCw } from "lucide-react-native";
+import { Calendar, ChevronRight, Crown, RefreshCw, ShoppingCart } from "lucide-react-native";
 import { apiRequest } from "../../lib/api";
 import { COLORS } from "../../lib/theme";
 import { useAuthStore } from "../../store/auth-store";
 import { useSubscriptionStore } from "../../store/subscription-store";
+
+type MealPlan = {
+  id: string;
+  createdAt: string;
+  duration: number;
+  shoppingItemsCount?: number;
+};
 
 type Preferences = {
   dietaryType: string | null;
@@ -108,6 +115,12 @@ export default function ProfileScreen() {
   const { data: prefs, isLoading } = useQuery<Preferences>({
     queryKey: ["preferences"],
     queryFn: () => apiRequest("/api/mobile/preferences"),
+  });
+
+  const { data: mealPlans } = useQuery<MealPlan[]>({
+    queryKey: ["meal-plans-history"],
+    queryFn: () => apiRequest("/api/mobile/meal-plan/history"),
+    select: (data) => data.slice(0, 3),
   });
 
   const [dietary, setDietary] = useState<string | null>(null);
@@ -251,6 +264,33 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Historique des plans */}
+        {mealPlans && mealPlans.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Derniers plans</Text>
+            {mealPlans.map((plan) => (
+              <View key={plan.id} style={styles.historyRow}>
+                <View style={styles.historyIcon}>
+                  <Calendar size={16} color={COLORS.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.historyDate}>
+                    {new Date(plan.createdAt).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                    })}
+                  </Text>
+                  <Text style={styles.historyMeta}>
+                    Plan {plan.duration}j
+                    {plan.shoppingItemsCount ? ` · ${plan.shoppingItemsCount} articles` : ""}
+                  </Text>
+                </View>
+                <ShoppingCart size={16} color={COLORS.muted} />
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Refaire le quiz */}
         <Pressable style={styles.quizBtn} onPress={handleRefaireQuiz}>
           <RefreshCw size={16} color={COLORS.primary} />
@@ -353,6 +393,25 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   saveBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+
+  historyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  historyIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  historyDate: { fontSize: 14, fontWeight: "600", color: COLORS.text },
+  historyMeta: { fontSize: 12, color: COLORS.muted, marginTop: 1 },
 
   quizBtn: {
     backgroundColor: "#fff",

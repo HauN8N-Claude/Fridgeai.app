@@ -413,9 +413,8 @@ export default function OnboardingScreen() {
 
           <View style={styles.featureCards}>
             {[
-              { emoji: "📸", title: "Scannez votre frigo", desc: "Prenez une photo, l'IA détecte automatiquement vos ingrédients" },
-              { emoji: "🍽️", title: "Plan repas personnalisé", desc: "Généré en 90 secondes selon vos goûts et vos restes" },
-              { emoji: "🛒", title: "Liste de courses", desc: "Uniquement ce qui manque, rien de superflu" },
+              { emoji: "📸", title: "Scannez votre frigo", desc: "L'IA détecte vos ingrédients en quelques secondes" },
+              { emoji: "🍽️", title: "Plan repas personnalisé", desc: "Généré selon vos goûts, vos restes et votre foyer" },
             ].map((f) => (
               <View key={f.title} style={styles.featureCard}>
                 <Text style={styles.featureEmoji}>{f.emoji}</Text>
@@ -425,6 +424,40 @@ export default function OnboardingScreen() {
                 </View>
               </View>
             ))}
+
+            {/* Mockup liste de courses */}
+            <View style={styles.featureCard}>
+              <Text style={styles.featureEmoji}>🛒</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.featureTitle}>Liste de courses prête</Text>
+                <Text style={styles.featureDesc}>Uniquement ce qui manque, rien de superflu</Text>
+              </View>
+            </View>
+            <View style={styles.listMockup}>
+              <View style={styles.listMockupHeader}>
+                <View style={styles.listMockupBadge}>
+                  <Text style={styles.listMockupBadgeText}>✓  Liste générée</Text>
+                </View>
+                <Text style={styles.listMockupCount}>8 articles</Text>
+              </View>
+              {[
+                { name: "Poulet fermier", qty: "800 g", done: false },
+                { name: "Tomates cerises", qty: "250 g", done: false },
+                { name: "Pâtes fusilli", qty: "500 g", done: true },
+                { name: "Crème fraîche", qty: "20 cl", done: false },
+              ].map((item) => (
+                <View key={item.name} style={styles.listMockupRow}>
+                  <View style={[styles.listMockupCheck, item.done && styles.listMockupCheckDone]}>
+                    {item.done && <Text style={{ color: "#fff", fontSize: 10 }}>✓</Text>}
+                  </View>
+                  <Text style={[styles.listMockupItem, item.done && styles.listMockupItemDone]}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.listMockupQty}>{item.qty}</Text>
+                </View>
+              ))}
+              <Text style={styles.listMockupMore}>+ 4 autres articles…</Text>
+            </View>
           </View>
 
           <Pressable style={styles.btn} onPress={() => setStep(1)}>
@@ -1067,6 +1100,58 @@ const styles = StyleSheet.create({
   featureEmoji: { fontSize: 28 },
   featureTitle: { fontSize: 15, fontWeight: "600", color: COLORS.text, marginBottom: 4 },
   featureDesc: { fontSize: 13, color: COLORS.muted, lineHeight: 18 },
+
+  // List mockup (step 0)
+  listMockup: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+  },
+  listMockupHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  listMockupBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  listMockupBadgeText: { fontSize: 12, fontWeight: "700", color: COLORS.primary },
+  listMockupCount: { fontSize: 12, color: COLORS.muted, fontWeight: "500" },
+  listMockupRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  listMockupCheck: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listMockupCheckDone: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  listMockupItem: { flex: 1, fontSize: 13, color: COLORS.text, fontWeight: "500" },
+  listMockupItemDone: { color: COLORS.muted, textDecorationLine: "line-through" },
+  listMockupQty: { fontSize: 12, color: COLORS.muted },
+  listMockupMore: {
+    fontSize: 12,
+    color: COLORS.muted,
+    textAlign: "center",
+    paddingVertical: 10,
+    fontStyle: "italic",
+  },
 
   // Step header
   stepHeader: { gap: 6 },
