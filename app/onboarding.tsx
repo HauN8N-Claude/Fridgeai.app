@@ -2,6 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   Image,
   Pressable,
@@ -25,7 +26,7 @@ import {
   ScanLine,
   X,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { apiRequest } from "../lib/api";
 import { COLORS } from "../lib/theme";
@@ -114,26 +115,83 @@ const GEN_STEPS = [
 
 type QuizHeaderProps = { quizStep: number; onBack: () => void; onSkip?: () => void };
 
-const QuizHeader = ({ quizStep, onBack, onSkip }: QuizHeaderProps) => (
-  <View style={styles.quizHeader}>
-    <Pressable style={styles.backBtn} onPress={onBack}>
-      <ChevronLeft size={20} color={COLORS.text} />
-    </Pressable>
-    <View style={styles.progressWrap}>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${(quizStep / 6) * 100}%` as any }]} />
-      </View>
-      <Text style={styles.progressLabel}>{quizStep} / 6</Text>
-    </View>
-    {onSkip ? (
-      <Pressable style={styles.passerBtn} onPress={onSkip}>
-        <Text style={styles.passerText}>Passer</Text>
+const QuizHeader = ({ quizStep, onBack, onSkip }: QuizHeaderProps) => {
+  const progressAnim = useRef(new Animated.Value((quizStep / 6) * 100)).current;
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: (quizStep / 6) * 100,
+      duration: 350,
+      useNativeDriver: false,
+    }).start();
+  }, [quizStep]);
+
+  return (
+    <View style={styles.quizHeader}>
+      <Pressable style={styles.backBtn} onPress={onBack}>
+        <ChevronLeft size={20} color={COLORS.text} />
       </Pressable>
-    ) : (
-      <View style={{ width: 52 }} />
-    )}
-  </View>
-);
+      <View style={styles.progressWrap}>
+        <View style={styles.progressTrack}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: ["0%", "100%"],
+                }),
+              },
+            ]}
+          />
+        </View>
+        <Text style={styles.progressLabel}>{quizStep} / 6</Text>
+      </View>
+      {onSkip ? (
+        <Pressable style={styles.passerBtn} onPress={onSkip}>
+          <Text style={styles.passerText}>Passer</Text>
+        </Pressable>
+      ) : (
+        <View style={{ width: 52 }} />
+      )}
+    </View>
+  );
+};
+
+// ─────────────────────────── PulsingDots ───────────────────────────
+
+const PulsingDots = () => {
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const animate = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1, duration: 350, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0.3, duration: 350, useNativeDriver: true }),
+        ])
+      );
+    const a1 = animate(dot1, 0);
+    const a2 = animate(dot2, 150);
+    const a3 = animate(dot3, 300);
+    a1.start(); a2.start(); a3.start();
+    return () => { a1.stop(); a2.stop(); a3.stop(); };
+  }, []);
+
+  return (
+    <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }}>
+      {[dot1, dot2, dot3].map((dot, i) => (
+        <Animated.View
+          key={i}
+          style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#fff", opacity: dot }}
+        />
+      ))}
+    </View>
+  );
+};
 
 // ─────────────────────────── Component ───────────────────────────
 
@@ -153,12 +211,13 @@ export default function OnboardingScreen() {
   const [showAllergyInput, setShowAllergyInput] = useState(false);
 
   // Step 3 — People
-  const [householdType, setHouseholdType] = useState("");
+  const [numberOfPeopleCount, setNumberOfPeopleCount] = useState(2);
   const [householdNames, setHouseholdNames] = useState("");
 
   // Step 4 — Cuisines
   const [cuisines, setCuisines] = useState<string[]>([]);
   const [showMoreCuisines, setShowMoreCuisines] = useState(false);
+  const [cuisineError, setCuisineError] = useState(false);
 
   // Step 5 — Disliked ingredients
   const [dislikedIngredients, setDislikedIngredients] = useState<string[]>([]);
@@ -169,6 +228,19 @@ export default function OnboardingScreen() {
   const [scanSubStep, setScanSubStep] = useState<ScanSubStep>("idle");
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [selectedIngredients, setSelectedIngredients] = useState<Set<number>>(new Set());
+  const [editedQtys, setEditedQtys] = useState<Record<number, string>>({});
+  const scanPulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanPulse, { toValue: 1.18, duration: 900, useNativeDriver: true }),
+        Animated.timing(scanPulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, []);
 
   // Step 7 — Generation
   const [genCurrentStep, setGenCurrentStep] = useState(-1);
@@ -180,7 +252,7 @@ export default function OnboardingScreen() {
 
   // ── Helpers ──
 
-  const numberOfPeople = PEOPLE_OPTIONS.find((o) => o.value === householdType)?.count ?? 2;
+  const numberOfPeople = numberOfPeopleCount;
 
   const toggleAllergy = (value: string) => {
     if (value === "none") {
@@ -240,6 +312,11 @@ export default function OnboardingScreen() {
       const data = await apiRequest<ScanResult>("/api/mobile/scan", { method: "POST", formData });
       setScanResult(data);
       setSelectedIngredients(new Set(data.ingredients.map((_, i) => i)));
+      setEditedQtys(
+        Object.fromEntries(
+          data.ingredients.map((ing, i) => [i, [ing.quantity, ing.unit].filter(Boolean).join(" ")])
+        )
+      );
       setScanSubStep("review");
     } catch (err) {
       Alert.alert("Erreur", (err as Error).message);
@@ -509,23 +586,27 @@ export default function OnboardingScreen() {
             </Text>
           </View>
 
-          <View style={styles.peopleGrid}>
-            {PEOPLE_OPTIONS.map((opt) => {
-              const active = householdType === opt.value;
-              return (
-                <Pressable
-                  key={opt.value}
-                  style={[styles.peopleCard, active && styles.peopleCardActive]}
-                  onPress={() => setHouseholdType(opt.value)}
-                >
-                  <Text style={styles.peopleEmoji}>{opt.emoji}</Text>
-                  <Text style={[styles.peopleLabel, active && styles.peopleLabelActive]}>
-                    {opt.label}
-                  </Text>
-                  <Text style={styles.peopleDesc}>{opt.desc}</Text>
-                </Pressable>
-              );
-            })}
+          <View style={styles.stepperWrap}>
+            <Pressable
+              style={[styles.stepperBtn, numberOfPeopleCount <= 1 && styles.stepperBtnDisabled]}
+              onPress={() => setNumberOfPeopleCount((n) => Math.max(1, n - 1))}
+              disabled={numberOfPeopleCount <= 1}
+            >
+              <Text style={styles.stepperBtnText}>−</Text>
+            </Pressable>
+            <View style={styles.stepperValue}>
+              <Text style={styles.stepperNumber}>{numberOfPeopleCount}</Text>
+              <Text style={styles.stepperUnit}>
+                {numberOfPeopleCount === 1 ? "personne" : "personnes"}
+              </Text>
+            </View>
+            <Pressable
+              style={[styles.stepperBtn, numberOfPeopleCount >= 8 && styles.stepperBtnDisabled]}
+              onPress={() => setNumberOfPeopleCount((n) => Math.min(8, n + 1))}
+              disabled={numberOfPeopleCount >= 8}
+            >
+              <Text style={styles.stepperBtnText}>+</Text>
+            </Pressable>
           </View>
 
           <View style={styles.section}>
@@ -539,11 +620,7 @@ export default function OnboardingScreen() {
             />
           </View>
 
-          <Pressable
-            style={[styles.btn, !householdType && styles.btnDisabled]}
-            onPress={() => { if (householdType) setStep(4); }}
-            disabled={!householdType}
-          >
+          <Pressable style={styles.btn} onPress={() => setStep(4)}>
             <Text style={styles.btnText}>Continuer</Text>
             <ChevronRight size={18} color="#fff" />
           </Pressable>
@@ -604,10 +681,15 @@ export default function OnboardingScreen() {
             </Text>
           </Pressable>
 
+          {cuisineError && cuisines.length < 2 && (
+            <Text style={styles.errorText}>Sélectionne au moins 2 cuisines pour continuer.</Text>
+          )}
           <Pressable
-            style={[styles.btn, cuisines.length < 2 && styles.btnDisabled]}
-            onPress={() => { if (cuisines.length >= 2) setStep(5); }}
-            disabled={cuisines.length < 2}
+            style={styles.btn}
+            onPress={() => {
+              if (cuisines.length < 2) { setCuisineError(true); return; }
+              setStep(5);
+            }}
           >
             <Text style={styles.btnText}>Continuer</Text>
             <ChevronRight size={18} color="#fff" />
@@ -736,14 +818,15 @@ export default function OnboardingScreen() {
                 <View style={[styles.checkbox, selectedIngredients.has(index) && styles.checkboxActive]}>
                   {selectedIngredients.has(index) && <Check size={14} color="#fff" />}
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.ingredientName}>{item.name}</Text>
-                  {(item.quantity || item.unit) && (
-                    <Text style={styles.ingredientQty}>
-                      {[item.quantity, item.unit].filter(Boolean).join(" ")}
-                    </Text>
-                  )}
-                </View>
+                <Text style={[styles.ingredientName, { flex: 1 }]}>{item.name}</Text>
+                <TextInput
+                  style={styles.qtyInput}
+                  value={editedQtys[index] ?? ""}
+                  onChangeText={(t) => setEditedQtys((prev) => ({ ...prev, [index]: t }))}
+                  placeholder="qté"
+                  placeholderTextColor={COLORS.muted}
+                  keyboardType="default"
+                />
               </Pressable>
             )}
           />
@@ -766,9 +849,9 @@ export default function OnboardingScreen() {
         <SafeAreaView style={styles.safe}>
           <QuizHeader quizStep={6} onBack={() => setStep(5)} />
           <View style={[styles.center, { flex: 1 }]}>
-            <View style={styles.scanIconWrap}>
+            <Animated.View style={[styles.scanIconWrap, { transform: [{ scale: scanPulse }] }]}>
               <ScanLine size={64} color={COLORS.primary} />
-            </View>
+            </Animated.View>
             <Text style={styles.stepTitle}>Activez le scan IA</Text>
             <Text style={[styles.stepSubtitle, { textAlign: "center", paddingHorizontal: 32 }]}>
               Créez votre compte gratuit pour scanner votre frigo avec l'IA et générer votre liste de courses.
@@ -799,9 +882,9 @@ export default function OnboardingScreen() {
           onBack={() => setStep(5)}
         />
         <View style={[styles.center, { flex: 1 }]}>
-          <View style={styles.scanIconWrap}>
+          <Animated.View style={[styles.scanIconWrap, { transform: [{ scale: scanPulse }] }]}>
             <ScanLine size={64} color={COLORS.primary} />
-          </View>
+          </Animated.View>
           <Text style={styles.stepTitle}>Scannez votre frigo</Text>
           <Text style={[styles.stepSubtitle, { textAlign: "center", paddingHorizontal: 32 }]}>
             Prenez une photo pour que l'IA détecte automatiquement vos ingrédients et génère votre liste de courses
@@ -847,7 +930,7 @@ export default function OnboardingScreen() {
                   {isDone ? (
                     <Check size={16} color="#fff" />
                   ) : isCurrent ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <PulsingDots />
                   ) : (
                     <Text style={styles.genStepEmoji}>{s.emoji}</Text>
                   )}
@@ -1032,27 +1115,33 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
 
-  // People grid (step 3)
-  peopleGrid: {
+  // People stepper (step 3)
+  stepperWrap: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  peopleCard: {
-    width: "47.5%",
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 16,
     alignItems: "center",
-    gap: 6,
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 28,
+    gap: 28,
     borderWidth: 1.5,
     borderColor: COLORS.border,
   },
-  peopleCardActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
-  peopleEmoji: { fontSize: 28 },
-  peopleLabel: { fontSize: 14, fontWeight: "600", color: COLORS.text, textAlign: "center" },
-  peopleLabelActive: { color: COLORS.primary },
-  peopleDesc: { fontSize: 12, color: COLORS.muted, textAlign: "center" },
+  stepperBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.primaryLight,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepperBtnDisabled: { backgroundColor: COLORS.background, borderColor: COLORS.border, opacity: 0.35 },
+  stepperBtnText: { fontSize: 30, fontWeight: "300", color: COLORS.primary, lineHeight: 36 },
+  stepperValue: { alignItems: "center", minWidth: 90 },
+  stepperNumber: { fontSize: 56, fontWeight: "800", color: COLORS.text, letterSpacing: -2 },
+  stepperUnit: { fontSize: 14, color: COLORS.muted, fontWeight: "500", marginTop: -4 },
 
   // Cuisine grid (step 4)
   cuisineGrid: {
@@ -1159,6 +1248,23 @@ const styles = StyleSheet.create({
   },
   ingredientName: { fontSize: 15, fontWeight: "500", color: COLORS.text },
   ingredientQty: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
+  qtyInput: {
+    width: 60,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 13,
+    color: COLORS.text,
+    textAlign: "center",
+  },
+  errorText: {
+    fontSize: 13,
+    color: COLORS.destructive,
+    textAlign: "center",
+    fontWeight: "500",
+  },
   checkbox: {
     width: 22,
     height: 22,
