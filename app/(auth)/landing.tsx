@@ -63,6 +63,9 @@ export default function LandingScreen() {
         {/* Headline */}
         <Text style={styles.headline}>90 secondes.</Text>
         <Text style={styles.headlineSub}>Voilà comment.</Text>
+        <Text style={styles.heroDesc}>
+          Planifie tes repas, réduis le gaspillage.{"\n"}Juste ce qu'il te faut, rien de plus.
+        </Text>
 
         {/* Steps */}
         <View style={styles.steps}>
@@ -108,7 +111,7 @@ export default function LandingScreen() {
             style={({ pressed }) => [styles.btnPrimary, pressed && styles.btnPressed]}
             onPress={() => router.push("/(auth)/register")}
           >
-            <Text style={styles.btnPrimaryText}>Essayer maintenant →</Text>
+            <Text style={styles.btnPrimaryText}>Commencer gratuitement</Text>
           </Pressable>
 
           <Pressable
@@ -158,8 +161,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontStyle: "italic",
     color: COLORS.accent,
-    marginBottom: 28,
+    marginBottom: 10,
     marginTop: 2,
+  },
+  heroDesc: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.55)",
+    lineHeight: 20,
+    marginBottom: 24,
   },
 
   // Steps

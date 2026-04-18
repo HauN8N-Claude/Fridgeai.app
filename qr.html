@@ -81,7 +81,7 @@
   </div>
 
   <script>
-    const EXPO_URL = "exp://10.10.46.52:8081";
+    const EXPO_URL = "exp://192.168.8.104:8081";
 
     document.getElementById("expoUrl").textContent = EXPO_URL;
 
@@ -94,7 +94,7 @@
     // Check if expo server is reachable
     const checkServer = async () => {
       try {
-        const res = await fetch("http://10.10.46.52:8081/status", { mode: "no-cors" });
+        const res = await fetch("http://192.168.8.104:8081/status", { mode: "no-cors" });
         document.getElementById("status").className = "status ready";
         document.getElementById("status").textContent = "✅ Serveur prêt — scannez le QR code !";
         clearInterval(interval);

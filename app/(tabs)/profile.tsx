@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -10,9 +11,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ChevronRight, Crown, RefreshCw } from "lucide-react-native";
 import { apiRequest } from "../../lib/api";
 import { COLORS } from "../../lib/theme";
 import { useAuthStore } from "../../store/auth-store";
+import { useSubscriptionStore } from "../../store/subscription-store";
 
 type Preferences = {
   dietaryType: string | null;
@@ -21,14 +24,11 @@ type Preferences = {
 };
 
 const DIETARY_OPTIONS = [
-  { label: "Aucun", value: "none" },
+  { label: "Omnivore", value: "omnivore" },
+  { label: "Flexitarien", value: "flexitarian" },
   { label: "Végétarien", value: "vegetarian" },
-  { label: "Végétalien", value: "vegan" },
+  { label: "Végan", value: "vegan" },
   { label: "Pescétarien", value: "pescatarian" },
-  { label: "Sans gluten", value: "gluten_free" },
-  { label: "Sans lactose", value: "dairy_free" },
-  { label: "Cétogène", value: "keto" },
-  { label: "Paléo", value: "paleo" },
 ];
 
 const ALLERGY_OPTIONS = [
@@ -100,8 +100,10 @@ function AllergySelector({ value, onChange }: { value: string[]; onChange: (v: s
 }
 
 export default function ProfileScreen() {
-  const { user, org, logout } = useAuthStore();
+  const { user, org, logout, resetOnboarding } = useAuthStore();
+  const { isPremium, customerInfo } = useSubscriptionStore();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const { data: prefs, isLoading } = useQuery<Preferences>({
     queryKey: ["preferences"],
@@ -140,18 +142,75 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleRefaireQuiz = () => {
+    Alert.alert(
+      "Refaire le quiz",
+      "Vos préférences actuelles seront remplacées. Continuer ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Continuer",
+          onPress: () => {
+            resetOnboarding();
+          },
+        },
+      ]
+    );
+  };
+
+  const activePlan = customerInfo?.entitlements.active["premium"];
+  const planLabel = !isPremium
+    ? "Plan Gratuit"
+    : activePlan?.productIdentifier === "fridai_lifetime"
+    ? "À vie"
+    : activePlan?.productIdentifier === "fridai_annual"
+    ? "Annuel"
+    : "Mensuel";
+
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 20 }}>
-        {/* User info */}
+      <ScrollView contentContainerStyle={styles.scroll}>
+
+        {/* User card */}
         <View style={styles.userCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase() ?? "?"}</Text>
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.userName}>{user?.name}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
             {org && <Text style={styles.orgName}>{org.name}</Text>}
+          </View>
+        </View>
+
+        {/* Subscription section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Abonnement</Text>
+
+          <View style={[styles.planCard, isPremium && styles.planCardPremium]}>
+            <View style={styles.planCardLeft}>
+              <Crown size={18} color={isPremium ? COLORS.accent : COLORS.muted} />
+              <View>
+                <Text style={styles.planName}>{planLabel}</Text>
+                {isPremium && activePlan?.expirationDate && (
+                  <Text style={styles.planExpiry}>
+                    Expire le {new Date(activePlan.expirationDate).toLocaleDateString("fr-FR")}
+                  </Text>
+                )}
+                {!isPremium && (
+                  <Text style={styles.planSub}>1 scan gratuit · liste de courses verrouillée</Text>
+                )}
+              </View>
+            </View>
+            {!isPremium && (
+              <Pressable
+                style={styles.upgradeBtn}
+                onPress={() => router.push("/paywall" as any)}
+              >
+                <Text style={styles.upgradeBtnText}>Upgrader</Text>
+                <ChevronRight size={14} color="#fff" />
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -192,10 +251,18 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Refaire le quiz */}
+        <Pressable style={styles.quizBtn} onPress={handleRefaireQuiz}>
+          <RefreshCw size={16} color={COLORS.primary} />
+          <Text style={styles.quizBtnText}>Refaire le quiz de personnalisation</Text>
+          <ChevronRight size={16} color={COLORS.muted} />
+        </Pressable>
+
         {/* Logout */}
         <Pressable style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>Déconnexion</Text>
         </Pressable>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -203,24 +270,108 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
-  userCard: { backgroundColor: "#fff", borderRadius: 12, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1, borderColor: COLORS.border },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.primaryLight, justifyContent: "center", alignItems: "center" },
+  scroll: { padding: 16, gap: 16, paddingBottom: 40 },
+
+  userCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   avatarText: { fontSize: 22, fontWeight: "700", color: COLORS.primary },
   userName: { fontSize: 16, fontWeight: "600", color: COLORS.text },
   userEmail: { fontSize: 13, color: COLORS.muted },
   orgName: { fontSize: 12, color: COLORS.primary, marginTop: 2 },
-  section: { backgroundColor: "#fff", borderRadius: 12, padding: 16, gap: 16, borderWidth: 1, borderColor: COLORS.border },
-  sectionTitle: { fontSize: 16, fontWeight: "600", color: COLORS.text },
+
+  section: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 16,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
+
+  planCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  planCardPremium: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+  planCardLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  planName: { fontSize: 15, fontWeight: "700", color: COLORS.text },
+  planExpiry: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
+  planSub: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
+  upgradeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  upgradeBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+
   field: { gap: 8 },
   label: { fontSize: 14, fontWeight: "500", color: COLORS.text },
   optionsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  optionBtn: { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
+  optionBtn: {
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
   optionBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
   optionText: { fontSize: 13, color: COLORS.muted, fontWeight: "500" },
   optionTextActive: { color: COLORS.primary },
-  saveBtn: { backgroundColor: COLORS.primary, borderRadius: 12, padding: 14, alignItems: "center", marginTop: 4 },
+  saveBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
   btnDisabled: { opacity: 0.6 },
   saveBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
-  logoutBtn: { borderWidth: 1.5, borderColor: COLORS.destructive, borderRadius: 12, padding: 14, alignItems: "center" },
+
+  quizBtn: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  quizBtnText: { flex: 1, fontSize: 14, fontWeight: "500", color: COLORS.text },
+
+  logoutBtn: {
+    borderWidth: 1.5,
+    borderColor: COLORS.destructive,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+  },
   logoutText: { color: COLORS.destructive, fontSize: 15, fontWeight: "600" },
 });

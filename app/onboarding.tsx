@@ -20,13 +20,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Lock,
   Plus,
   ScanLine,
-  Share2,
-  Sparkles,
   X,
 } from "lucide-react-native";
 import { useState } from "react";
+import { useRouter } from "expo-router";
 import { apiRequest } from "../lib/api";
 import { COLORS } from "../lib/theme";
 import { useAuthStore } from "../store/auth-store";
@@ -111,7 +111,7 @@ const GEN_STEPS = [
 
 // ─────────────────────────── Sub-components ───────────────────────────
 
-type QuizHeaderProps = { quizStep: number; onBack: () => void; onSkip: () => void };
+type QuizHeaderProps = { quizStep: number; onBack: () => void; onSkip?: () => void };
 
 const QuizHeader = ({ quizStep, onBack, onSkip }: QuizHeaderProps) => (
   <View style={styles.quizHeader}>
@@ -122,10 +122,15 @@ const QuizHeader = ({ quizStep, onBack, onSkip }: QuizHeaderProps) => (
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${(quizStep / 6) * 100}%` as any }]} />
       </View>
+      <Text style={styles.progressLabel}>{quizStep} / 6</Text>
     </View>
-    <Pressable style={styles.passerBtn} onPress={onSkip}>
-      <Text style={styles.passerText}>Passer</Text>
-    </Pressable>
+    {onSkip ? (
+      <Pressable style={styles.passerBtn} onPress={onSkip}>
+        <Text style={styles.passerText}>Passer</Text>
+      </Pressable>
+    ) : (
+      <View style={{ width: 52 }} />
+    )}
   </View>
 );
 
@@ -133,6 +138,7 @@ const QuizHeader = ({ quizStep, onBack, onSkip }: QuizHeaderProps) => (
 
 export default function OnboardingScreen() {
   const { completeOnboarding } = useAuthStore();
+  const router = useRouter();
   const [step, setStep] = useState<Step>(0);
 
   // Step 1 — Diet
@@ -161,7 +167,6 @@ export default function OnboardingScreen() {
   const [scanSubStep, setScanSubStep] = useState<ScanSubStep>("idle");
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [selectedIngredients, setSelectedIngredients] = useState<Set<number>>(new Set());
-  const [scanSkipped, setScanSkipped] = useState(false);
 
   // Step 7 — Generation
   const [genCurrentStep, setGenCurrentStep] = useState(-1);
@@ -269,7 +274,7 @@ export default function OnboardingScreen() {
         },
       });
 
-      if (scanResult && !scanSkipped) {
+      if (scanResult) {
         const confirmed = scanResult.ingredients.filter((_, i) => selectedIngredients.has(i));
         await apiRequest("/api/mobile/scan/confirm", {
           method: "POST",
@@ -712,13 +717,12 @@ export default function OnboardingScreen() {
           <QuizHeader
             quizStep={6}
             onBack={() => setScanSubStep("idle")}
-            onSkip={() => { setScanSkipped(true); handleGenerate(); }}
           />
           <Image source={{ uri: scanResult.imageUrl }} style={styles.previewImage} />
 
           <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
-            <Text style={styles.stepTitle}>Vérifiez les aliments</Text>
-            <Text style={styles.stepSubtitle}>Décochez les aliments incorrects</Text>
+            <Text style={styles.stepTitle}>Vérifiez les aliments détectés</Text>
+            <Text style={styles.stepSubtitle}>Décochez les aliments incorrects ou ajustez les quantités</Text>
           </View>
 
           <FlatList
@@ -759,7 +763,6 @@ export default function OnboardingScreen() {
         <QuizHeader
           quizStep={6}
           onBack={() => setStep(5)}
-          onSkip={() => { setScanSkipped(true); handleGenerate(); }}
         />
         <View style={[styles.center, { flex: 1 }]}>
           <View style={styles.scanIconWrap}>
@@ -767,7 +770,7 @@ export default function OnboardingScreen() {
           </View>
           <Text style={styles.stepTitle}>Scannez votre frigo</Text>
           <Text style={[styles.stepSubtitle, { textAlign: "center", paddingHorizontal: 32 }]}>
-            Prenez une photo pour que l'IA détecte automatiquement vos ingrédients disponibles
+            Prenez une photo pour que l'IA détecte automatiquement vos ingrédients et génère votre liste de courses
           </Text>
 
           <View style={styles.scanActions}>
@@ -777,12 +780,6 @@ export default function OnboardingScreen() {
             </Pressable>
             <Pressable style={styles.btnSecondary} onPress={() => pickImage(false)}>
               <Text style={styles.btnSecondaryText}>Choisir depuis la galerie</Text>
-            </Pressable>
-            <Pressable
-              style={styles.skipBtn}
-              onPress={() => { setScanSkipped(true); handleGenerate(); }}
-            >
-              <Text style={styles.skipText}>Passer cette étape</Text>
             </Pressable>
           </View>
         </View>
@@ -847,62 +844,50 @@ export default function OnboardingScreen() {
     );
   }
 
-  // ─────────────────────────── Step 8: Shopping list ───────────────────────────
-
-  const unchecked = shoppingList.filter((i) => !i.checked);
-  const checked = shoppingList.filter((i) => i.checked);
+  // ─────────────────────────── Step 8: Résultats floutés + Paywall ───────────────────────────
 
   return (
-    <SafeAreaView style={styles.safe} edges={["bottom"]}>
-      <View style={styles.step6Header}>
-        <Text style={styles.step6Title}>🛒 Votre liste de courses</Text>
-        <Text style={styles.step6Subtitle}>
-          {unchecked.length > 0
-            ? `${unchecked.length} article${unchecked.length > 1 ? "s" : ""} à acheter`
-            : "Votre frigo est déjà bien fourni !"}
-        </Text>
-      </View>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.resultsHeader}>
+          <View style={styles.resultsBadge}>
+            <Check size={16} color="#fff" />
+            <Text style={styles.resultsBadgeText}>Liste générée !</Text>
+          </View>
+          <Text style={styles.resultsTitle}>🛒 Votre liste est prête</Text>
+          <Text style={styles.resultsSubtitle}>
+            {shoppingList.length} article{shoppingList.length > 1 ? "s" : ""} identifiés pour votre semaine
+          </Text>
+        </View>
 
-      <FlatList
-        data={[...unchecked, ...checked]}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 190 }}
-        renderItem={({ item }) => (
-          <View style={styles.shoppingRow}>
-            <View style={[styles.checkbox, item.checked && styles.checkboxActive]}>
-              {item.checked && <Check size={14} color="#fff" />}
+        <View style={styles.lockedList}>
+          {[...Array(Math.min(shoppingList.length || 5, 6))].map((_, i) => (
+            <View key={i} style={styles.lockedRow}>
+              <View style={styles.lockedDot} />
+              <View style={[styles.lockedBar, { width: `${55 + (i % 3) * 15}%` as any }]} />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.ingredientName, item.checked && styles.textDone]}>
-                {item.ingredient.name}
-              </Text>
-              {(item.quantity || item.unit) && (
-                <Text style={styles.ingredientQty}>
-                  {[item.quantity, item.unit].filter(Boolean).join(" ")}
-                </Text>
-              )}
+          ))}
+          <View style={styles.lockedOverlay}>
+            <View style={styles.lockBadge}>
+              <Lock size={20} color="#fff" />
+              <Text style={styles.lockBadgeText}>Contenu verrouillé</Text>
             </View>
           </View>
-        )}
-        ListEmptyComponent={
-          <View style={[styles.center, { paddingVertical: 32 }]}>
-            <Text style={{ color: COLORS.muted, fontSize: 15, textAlign: "center" }}>
-              Votre frigo est déjà bien fourni !{"\n"}Aucun ingrédient manquant.
-            </Text>
-          </View>
-        }
-      />
+        </View>
 
-      <View style={styles.step6Actions}>
-        <Pressable style={styles.shareBtn} onPress={handleShare}>
-          <Share2 size={18} color={COLORS.primary} />
-          <Text style={styles.shareBtnText}>Partager la liste</Text>
-        </Pressable>
-        <Pressable style={styles.btn} onPress={completeOnboarding}>
-          <Text style={styles.btnText}>Accéder à l'app</Text>
-          <ChevronRight size={18} color="#fff" />
-        </Pressable>
-      </View>
+        <View style={styles.paywallCta}>
+          <Pressable
+            style={styles.btn}
+            onPress={() => router.push("/paywall" as any)}
+          >
+            <Text style={styles.btnText}>Voir ma liste complète</Text>
+            <ChevronRight size={18} color="#fff" />
+          </Pressable>
+          <Text style={styles.paywallNote}>
+            Débloquez votre liste · Annulation à tout moment
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -1236,4 +1221,70 @@ const styles = StyleSheet.create({
   btnSecondaryText: { color: COLORS.primary, fontSize: 15, fontWeight: "600" },
   skipBtn: { alignItems: "center", padding: 12 },
   skipText: { color: COLORS.muted, fontSize: 14 },
+
+  // Progress label
+  progressLabel: { fontSize: 11, color: COLORS.muted, textAlign: "center", marginTop: 4 },
+
+  // Step 8 — Résultats floutés
+  resultsHeader: { alignItems: "center", gap: 10, paddingTop: 8 },
+  resultsBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  resultsBadgeText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  resultsTitle: { fontSize: 26, fontWeight: "800", color: COLORS.text, textAlign: "center" },
+  resultsSubtitle: { fontSize: 14, color: COLORS.muted, textAlign: "center" },
+
+  lockedList: {
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+  },
+  lockedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  lockedDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.border,
+  },
+  lockedBar: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.border,
+  },
+  lockedOverlay: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: "rgba(249,250,251,0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  lockBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: COLORS.text,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 30,
+  },
+  lockBadgeText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+
+  paywallCta: { gap: 12, marginTop: 24 },
+  paywallNote: { fontSize: 12, color: COLORS.muted, textAlign: "center" },
 });

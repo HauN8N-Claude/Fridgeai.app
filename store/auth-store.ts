@@ -28,6 +28,7 @@ type AuthState = {
   logout: () => Promise<void>;
   loadSession: () => Promise<void>;
   completeOnboarding: () => void;
+  resetOnboarding: () => void;
 };
 
 const signInAndStore = async (
@@ -118,5 +119,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   completeOnboarding: () => {
     set({ needsOnboarding: false });
+  },
+
+  resetOnboarding: () => {
+    set({ needsOnboarding: true });
   },
 }));
