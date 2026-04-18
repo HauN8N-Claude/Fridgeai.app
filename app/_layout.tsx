@@ -40,7 +40,8 @@ function AuthGuard() {
     const inOnboarding = seg[0] === "onboarding";
     const inPaywall = seg[0] === "paywall";
 
-    if (!isAuthenticated && !inAuthGroup) {
+    // Guest autorisé sur /onboarding (steps 0-5 sans auth) et /paywall
+    if (!isAuthenticated && !inAuthGroup && !inOnboarding && !inPaywall) {
       router.replace("/(auth)/landing");
     } else if (isAuthenticated && needsOnboarding && !inOnboarding && !inPaywall) {
       router.replace("/onboarding" as any);
